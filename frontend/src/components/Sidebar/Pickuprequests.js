@@ -1,61 +1,60 @@
-import { Download } from "@mui/icons-material";
-import { Box, Button, Divider, Stack, Typography } from "@mui/material";
+import { Close, Download } from "@mui/icons-material";
+import { Box, Button, Divider, Rating, Stack, Typography } from "@mui/material";
 import React, { useState , useEffect, useRef } from "react";
-import { collection } from "firebase/firestore";
+import { collection, setDoc } from "firebase/firestore";
 import { db } from "../../config/firebase";
-import { getDocs,query } from "firebase/firestore";
+import { getDocs,query ,doc} from "firebase/firestore";
+import { useNavigate } from "react-router-dom";
 
 function Pickuprequests(){
 
     const [pickups, setPickups] = useState([]);
-    const [isDataFetched, setIsDataFetched] = useState(false);
-    // const isFirstRun = useRef(true);
+    const navigate=useNavigate();
+
+    const fetchPickups = async () => {
+        try {
+            const pickupsCollectionRef = collection(db, "pickupDoc");
+            const querySnapshot = await getDocs(query(pickupsCollectionRef));
+
+            const uid = localStorage.getItem('uid');
+            const user_email = localStorage.getItem('user_email');
+            console.log(user_email, uid)
+
+            const pickupData = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })).filter(pickup => pickup.email === user_email);
+
+            const notPickedPickups = pickupData.filter(pickup => pickup.picked === false);
+
+            console.log("Pickups not picked:", notPickedPickups);
+
+            let updatedPickups = [...notPickedPickups];
+
+            const pickedPickups = pickupData.filter(pickup => pickup.picked === true);
+            if (pickedPickups.length > 0) {
+                const paymentCollectionRef = collection(db, "payment");
+                const paymentQuerySnapshot = await getDocs(query(paymentCollectionRef));
+                const paymentData = paymentQuerySnapshot.docs
+                    .map(doc => ({
+                        id: doc.id,
+                        ...doc.data()
+                    }))
+                    .filter(payment => payment.userId === uid);
+                console.log("Picked pickups payment info :", paymentData);
+
+                updatedPickups = [...updatedPickups, ...paymentData];
+            }
+
+            console.log("Overall pickups:", updatedPickups);
+            setPickups(updatedPickups);
+
+        } catch (error) {
+            console.error("Error fetching pickups and payment data:", error);
+        }
+    };
 
     useEffect(() => {
-        const fetchPickups = async () => {
-            try {
-                const pickupsCollectionRef = collection(db, "pickupDoc");
-                const querySnapshot = await getDocs(query(pickupsCollectionRef));
-    
-                const uid = localStorage.getItem('uid');
-                const user_email=localStorage.getItem('user_email');
-                console.log(user_email,uid)
-
-                const pickupData = querySnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                })).filter(pickup => pickup.email === user_email);
-    
-                const notPickedPickups = pickupData.filter(pickup => pickup.picked === false);
-    
-                console.log("Pickups not picked:", notPickedPickups);
-                setPickups(notPickedPickups);
-                // if (!isFirstRun.current) {
-                    if(!isDataFetched){
-                    const pickedPickups = pickupData.filter(pickup => pickup.picked === true);
-                    if (pickedPickups.length > 0) {
-                        
-                        const paymentCollectionRef = collection(db, "payment");
-                        const paymentQuerySnapshot = await getDocs(query(paymentCollectionRef));
-                        const paymentData = paymentQuerySnapshot.docs
-                            .map(doc => ({
-                                id: doc.id,
-                                ...doc.data()
-                            }))
-                            .filter(payment => payment.userId === uid);
-                        console.log("Picked pickups payment info :", paymentData);
-                        
-                        setPickups(prevPickups => [...prevPickups, ...paymentData]);
-                    
-                    }
-                }
-                setIsDataFetched(true)
-                // isFirstRun.current = false;
-            } catch (error) {
-                console.error("Error fetching pickups and payment data:", error);
-            }
-        };
-        console.log("Overall pickups:",pickups)
         fetchPickups();
     }, []);
       
@@ -96,6 +95,17 @@ function Pickuprequests(){
         setShowBillComponents(newShowBillComponents);
       };
 
+    const handleratingedit =async(value,idd)=>{
+        try {
+            const paymentDocRef=doc(db,'payment',idd)
+            await setDoc(paymentDocRef,{rating:value},{merge:true});
+            console.log("Rating updated successfully")
+            fetchPickups(); 
+        }catch(err){
+            console.err("Error in giving rating: ",err)
+        }
+    }
+
     return(
         <>
         <Box>
@@ -103,7 +113,7 @@ function Pickuprequests(){
             {
                 (pickups.length!=0) ? (<>
                 <Box sx={{margin:'5vh',display:'flex',flexDirection:'column',alignItems:'center'}}>
-                <Typography fontWeight={'bolder'}>Your pickup requests</Typography>
+                {/* <Typography fontWeight={'bolder'}>Your pickup requests</Typography> */}
                 {pickups.map((pick,index)=>(
                         <Box sx={{width:'70vw',minheight:{xs:'140px',sm:'160px'},border:'0.8px solid grey',borderRadius:'5px',mt:'4vh',padding:'2vh 5vw',backgroundColor:'rgba(200, 200, 200, 0.07)'
                         }}>
@@ -112,38 +122,53 @@ function Pickuprequests(){
                             <Typography color={'grey'} fontWeight={'bold'}>{pick.picked !== undefined ? pick.id : pick.pickupId}</Typography>
                                 <Typography color={'grey'}>{pick.picked !== undefined ? pick.date : new Date(pick.date.seconds * 1000).toLocaleDateString('en-GB')}</Typography>
                             </Box>
-                            
-                            {
-                                pick.picked !== undefined ? (<Typography color={'red'} fontWeight={'bolder'} fontSize={'20px'}>OTP : &nbsp;{pick.otp}</Typography>):(<Typography color={'rgb(11, 225, 44)'} fontWeight={'bolder'} fontSize={'20px'}>&#8377;&nbsp;{pick.amount}</Typography>)
-                            }
                             <Divider sx={{margin:'2vh 0'}}/>
+                            {
+                                pick.picked !== undefined ? (<Typography color={'red'} fontWeight={'bolder'} fontSize={'20px'}>OTP : &nbsp;{pick.otp}</Typography>):(<>
+                                <Typography color={'rgb(11, 225, 44)'} fontWeight={'bolder'} fontSize={'20px'}>&#8377;&nbsp;{pick.amount}</Typography>
+                                <Typography>payment mode : <span style={{color:'blue'}}>{pick.mode}</span></Typography>
+                                </>)
+                            }
+                            
                          
                             
-                    {/* <ul style={{ listStyle: 'none', display: 'flex', flexWrap: 'wrap' }}>
-                        {pick.scrapsSold.map((scrap) => (
-                            <li style={{padding:'0 1vw',borderRight:'1px solid rgb(11, 225, 44)'}}>{scrap.item}</li>
-                        ))}
-                    </ul> */}
+                  
 
                     {
                         pick.picked!=undefined?(<Typography color={'grey'}>Your pickup has not been collected yet.
                             <br />Share the above OTP when the vendor arrives
                         </Typography>):(
-                       <>
+                       <Box sx={{display:'flex',justifyContent:'space-between',flexDirection:{xs:'column',sm:'row',alignContent:'center',alignItems:'center'}}}>
+                        <Box sx={{display:'flex'}}>
+                        <Typography>Rating : </Typography> 
+                        <Rating
+                            name="simple-controlled"
+                            value={pick.rating==undefined ? 0 : pick.rating}
+                           onChange={(e)=>handleratingedit(e.target.value,pick.id)}
+                           readOnly={pick.rating==undefined ? false : true}
+                           precision={0.5}
+                            />   
+                            
+                         </Box>
+
+                        {
+                            !showBillComponents[index] ? (<Button onClick={() => toggleBillComponent(index)} sx={{textTransform:'none'}}variant="contained">View Bill</Button>) : (<Button onClick={() => toggleBillComponent(index)} sx={{textTransform:'none'}}variant="outlined" color="error" >Close</Button>)
+                        }
+                       
+
                         
-                        <Button onClick={() => toggleBillComponent(index)} >View Bill</Button>
-                        {showBillComponents[index] && <Bill pick={pick}/>}
-                        </>
+                        </Box>
                         
                     )
                     }
+                    {showBillComponents[index] && <Bill pick={pick}/>}
                         </Box>
                     ))}
                 </Box>
                 </>) :(<>
                 <Box sx={{display:'flex',flexDirection:'column',alignItems:'center',textAlign:'center',marginTop:'25vh'}}>
                     <Typography width={'60vw'}>You have not raised any request till now</Typography>
-                    <Button sx={{textTransform:'none',color:'white',fontWeight:'bolder',backgroundColor:'rgb(11, 225, 44)',padding:'10px',margin:'5vh 0'}}>Raise pickup request</Button>
+                    <Button sx={{textTransform:'none',color:'white',fontWeight:'bolder',backgroundColor:'rgb(11, 225, 44)',padding:'10px',margin:'5vh 0'}} onClick={()=>navigate("/pickup")}>Raise pickup request</Button>
                 </Box>
                 </>)
 }
