@@ -11,7 +11,7 @@ import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import { db } from '../../config/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { useParams } from "react-router-dom";
+import {  useNavigate, useParams } from "react-router-dom";
 
 
 function Itemdesc(){
@@ -22,6 +22,7 @@ function Itemdesc(){
   const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
   const { id , showcontact } = useParams();
   
+  const navigate=useNavigate();
   
   useEffect(() => {
     const handleResize = () => {
@@ -141,7 +142,7 @@ useEffect(()=>{
                     {(showcontact=='1'||showcontact==1)?(<></>):(<Box sx={{border:'1px solid lightgrey', mb:'4vh',borderRadius:'10px',padding:'2vh 5vw',width:'70vw'}}>
                     <Box sx={{display:'flex',alignItems:'center'}}><Avatar /><Typography sx={{fontSize:{xs:'14px',sm:"18px"},fontWeight:'bold',ml:'5vw'}}>{itemData.useremail}</Typography></Box>
                     <Box sx={{display:'flex',alignContent:'center',justifyContent:'center',mt:'3vh'}}>
-                      <Button sx={{border:'2px solid black',borderRadius:'5px',width:'80vw',fontWeight:'bold',color:'black'}}>Chat with seller</Button></Box>
+                      <Button sx={{border:'2px solid black',borderRadius:'5px',width:'80vw',fontWeight:'bold',color:'black'}} onClick={()=>navigate(`/chat/${itemData.useremail}`)}>Chat with seller</Button></Box>
                   </Box>)}
                   
           
