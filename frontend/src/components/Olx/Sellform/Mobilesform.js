@@ -17,6 +17,7 @@ import {
 import { AddPhotoAlternate, Camera, Delete } from '@mui/icons-material';
 import Webcam from "react-webcam";
 import Webcamera from './Webcam';
+import fetchPincodeCity from './Pincode';
 
 import { collection, addDoc, doc, setDoc ,serverTimestamp} from 'firebase/firestore'
 ;import { db } from '../../../config/firebase';
@@ -33,6 +34,7 @@ const MobilesForm = ({flag,editdata}) => {
   const [imageflag,setimageflag]=useState('close');
   const fileInputRef = useRef(null);
   const navigate=useNavigate();
+  const [pincode,setpincode]=useState('')
 
   const [formData, setFormData] = useState({
     category:'Mobiles',
@@ -47,6 +49,7 @@ const MobilesForm = ({flag,editdata}) => {
     images:[],
     useremail:localStorage.getItem('user_email'),
     status: 'active',
+    city:'',
     timestamp: serverTimestamp()
   });
 
@@ -127,6 +130,19 @@ const MobilesForm = ({flag,editdata}) => {
     console.log(formData);
   };
 
+  useEffect(()=>{
+    const updateCity = async () => {
+      const city = await fetchPincodeCity(pincode);
+      setFormData((prevData) => ({
+        ...prevData,
+        city,
+      }));
+    }
+    if(pincode.length>=6){
+      updateCity();
+  }
+  },[pincode]);
+
   return (
     <Container maxWidth="sm">
    
@@ -174,7 +190,29 @@ const MobilesForm = ({flag,editdata}) => {
           value={formData.additionalDescription}
           onChange={handleChange}
         />
+       
+
         <TextField label="Address" fullWidth margin="normal" name="address" value={formData.address} onChange={handleChange} />
+        <Box sx={{width:'100%',display:'flex',margin:'1vh 0'}}>
+        <TextField
+          label="Pincode"
+          sx={{width:'50%'}}
+          margin="normal"
+          name="pincode"
+          value={pincode}
+          onChange={(e)=>setpincode(e.target.value)}
+        />
+        <TextField
+          label="City"
+          sx={{width:'50%'}}
+          margin="normal"
+          name="city"
+          value={formData.city}
+          onChange={handleChange}
+          aria-readonly
+        />
+        </Box>
+        
         <Box sx={{border:'1px solid black'}}>
           <Box sx={{display:'flex',justifyContent:'space-around'}}>
           <Button sx={{ display: 'flex', alignItems: 'center' }} onClick={()=>setimageflag('select')}> <AddPhotoAlternate/>Add photo</Button>

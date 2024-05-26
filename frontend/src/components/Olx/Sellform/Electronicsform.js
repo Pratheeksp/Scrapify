@@ -18,7 +18,8 @@ import {
 import { AddPhotoAlternate, Camera, Delete } from '@mui/icons-material';
 import Webcam from "react-webcam";
 import Webcamera from './Webcam';
-//
+
+
 import { collection, addDoc, doc, setDoc ,serverTimestamp} from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 import { imgDB } from '../../../config/firebase';
@@ -26,6 +27,8 @@ import { v4 } from "uuid";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useNavigate } from 'react-router-dom';
 import { deleteObject } from "firebase/storage";
+import fetchPincodeCity from './Pincode';
+
 
 const ElectronicsForm = ({ flag, editdata }) => {
   const [imagesArray, setImagesArray] = useState([]);
@@ -33,6 +36,7 @@ const ElectronicsForm = ({ flag, editdata }) => {
   const [urls, setUrls] = useState([]);
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
+  const [pincode,setpincode]=useState('')
 
   const [formData, setFormData] = useState({
     category: 'Electronics',
@@ -47,6 +51,7 @@ const ElectronicsForm = ({ flag, editdata }) => {
     images: [],
     useremail: localStorage.getItem('user_email'),
     status: 'active',
+    city:'',
     timestamp: serverTimestamp()
   });
 
@@ -60,8 +65,7 @@ const ElectronicsForm = ({ flag, editdata }) => {
   };
 
   const handleDeleteimage = async (index) => {
-    // setImagesArray((prevImages) => prevImages.filter((_, i) => i !== index));
-    // const imageName = 'example.jpg';
+  
     const imageUrl = imagesArray[index];
     const imageRef = ref(imgDB, imageUrl);
     try {
@@ -118,8 +122,6 @@ const ElectronicsForm = ({ flag, editdata }) => {
       navigate("/myads")
     }
     else {
-      // edit logic here
-      //u will get the id from formdata
       const resellDocRef = doc(db, 'resellDoc', formData.id);
       await setDoc(resellDocRef, formData);
 
@@ -128,6 +130,18 @@ const ElectronicsForm = ({ flag, editdata }) => {
     console.log(formData);
   };
 
+  useEffect(()=>{
+    const updateCity = async () => {
+      const city = await fetchPincodeCity(pincode);
+      setFormData((prevData) => ({
+        ...prevData,
+        city,
+      }));
+    }
+    if(pincode.length>=6){
+      updateCity();
+  }
+  },[pincode]);
   return (
     <Container maxWidth="sm">
 
@@ -180,11 +194,34 @@ const ElectronicsForm = ({ flag, editdata }) => {
           onChange={handleChange}
         />
         <TextField label="Address" fullWidth margin="normal" name="address" value={formData.address} onChange={handleChange} />
+        
+        <Box sx={{width:'100%',display:'flex',margin:'1vh 0'}}>
+        <TextField
+          label="Pincode"
+          sx={{width:'50%'}}
+          margin="normal"
+          name="pincode"
+          value={pincode}
+          onChange={(e)=>setpincode(e.target.value)}
+        />
+        <TextField
+          label="City"
+          sx={{width:'50%'}}
+          margin="normal"
+          name="city"
+          value={formData.city}
+          onChange={handleChange}
+          aria-readonly
+        />
+        </Box>
+     
+
         <Box sx={{ border: '1px solid black' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-around' }}>
             <Button sx={{ display: 'flex', alignItems: 'center' }} onClick={() => setimageflag('select')}> <AddPhotoAlternate />Add photo</Button>
             <Button sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }} onClick={() => setimageflag('click')}><Camera />Click a photo</Button>
           </Box>
+
 
           <Webcamera imageflag={imageflag} imagesArray={imagesArray} setImagesArray={setImagesArray} setimageflag={setimageflag} />
 

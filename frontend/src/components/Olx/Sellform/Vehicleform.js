@@ -27,6 +27,7 @@ import { v4 } from "uuid";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useNavigate } from 'react-router-dom';
 import { deleteObject } from 'firebase/storage';
+import fetchPincodeCity from './Pincode';
 
 const VehicleForm = ({ flag, editdata }) => {
 
@@ -35,7 +36,8 @@ const VehicleForm = ({ flag, editdata }) => {
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
   // **************************
-
+  const [pincode,setpincode]=useState('')
+ 
   const [formData, setFormData] = useState({
     category: 'Vehicle',
     vehicleType: 'car',
@@ -49,6 +51,7 @@ const VehicleForm = ({ flag, editdata }) => {
     images: [],
     useremail: localStorage.getItem('user_email'),
     status: 'active',
+    city:'',
     timestamp: serverTimestamp()
   });
 
@@ -137,6 +140,19 @@ const VehicleForm = ({ flag, editdata }) => {
     console.log(formData);
   };
 
+  useEffect(()=>{
+    const updateCity = async () => {
+      const city = await fetchPincodeCity(pincode);
+      setFormData((prevData) => ({
+        ...prevData,
+        city,
+      }));
+    }
+    if(pincode.length>=6){
+      updateCity();
+  }
+  },[pincode]);
+
   return (
     <Container maxWidth="sm">
       <form onSubmit={handleSubmit}>
@@ -178,7 +194,29 @@ const VehicleForm = ({ flag, editdata }) => {
           value={formData.additionalDescription}
           onChange={handleChange}
         />
+       
+
         <TextField label="Address" fullWidth margin="normal" name="address" value={formData.address} onChange={handleChange} />
+        <Box sx={{width:'100%',display:'flex',margin:'1vh 0'}}>
+        <TextField
+          label="Pincode"
+          sx={{width:'50%'}}
+          margin="normal"
+          name="pincode"
+          value={pincode}
+          onChange={(e)=>setpincode(e.target.value)}
+        />
+        <TextField
+          label="City"
+          sx={{width:'50%'}}
+          margin="normal"
+          name="city"
+          value={formData.city}
+          onChange={handleChange}
+          aria-readonly
+        />
+        </Box>
+        
         <Box sx={{ border: '1px solid black' }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-around' }}>
             <Button sx={{ display: 'flex', alignItems: 'center' }} onClick={() => setimageflag('select')}> <AddPhotoAlternate />Add photo</Button>

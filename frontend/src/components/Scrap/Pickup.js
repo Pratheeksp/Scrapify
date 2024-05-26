@@ -2,7 +2,7 @@ import { Box, Button, IconButton, ImageList, ImageListItem, Typography, Circular
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import React, { useState } from "react";
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import { AddPhotoAlternate, Camera, Delete } from "@mui/icons-material";
+import { AddPhotoAlternate, Camera, Delete, Label ,SentimentVeryDissatisfied } from "@mui/icons-material";
 import Webcamera from "../Olx/Sellform/Webcam";
 import { useEffect } from "react";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
@@ -17,6 +17,7 @@ import { v4 } from "uuid";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { useNavigate } from 'react-router-dom';
 import { deleteObject } from "firebase/storage";
+import axios from "axios";
 
 function Pickup() {
 
@@ -26,22 +27,23 @@ function Pickup() {
   const [addressLine1, setAddressLine1] = useState(""); 
   const [addressLine2, setAddressLine2] = useState(""); 
   const [pincode, setPincode] = useState("");
-  // const [prediction,setprediction]=useState([]);
+  const [prediction,setprediction]=useState([]);
+
 
   const navigate=useNavigate();
-  // const classes = ['cardboard', 'ewaste', 'glass', 'metal', 'paper', 'plastic', 'trash']
+  const classes = ['cardboard', 'ewaste', 'glass', 'metal', 'paper', 'plastic', 'trash']
 
   
-  // const handleClassSelect = (event) => {
-  //   const selectedClass = event.target.value;
-  //   if (!prediction.includes(selectedClass)) {
-  //     setprediction([...prediction, selectedClass]);
-  //   }
-  // };
+  const handleClassSelect = (event) => {
+    const selectedClass = event.target.value;
+    if (!prediction.includes(selectedClass)) {
+      setprediction([...prediction, selectedClass]);
+    }
+  };
 
-  // const handleRemoveClass = (classToRemove) => {
-  //   setprediction(prediction.filter((cls) => cls !== classToRemove));
-  // };
+  const handleRemoveClass = (classToRemove) => {
+    setprediction(prediction.filter((cls) => cls !== classToRemove));
+  };
 
   const handleDeleteimage =   (index) => {
     setImagesArray((prevImages) => prevImages.filter((_, i) => i !== index));
@@ -63,25 +65,25 @@ function Pickup() {
     iconSize: [30, 30],
   });
 
-  // const performPrediction = async () => {
+  const performPrediction = async () => {
 
-  //   const response = await fetch('http://127.0.0.1:5000/predict_images', {
-  //     method: 'POST',
-  //     headers: {
-  //       'Content-Type': 'application/json'
-  //     },
-  //     body: JSON.stringify({ urls: imagesArray})
-  //   });
-  //   const data = await response.json();
-  //   setprediction(data.prediction);
-  // }
+    const response = await fetch('http://127.0.0.1:5000/predict_images', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ urls: imagesArray})
+    });
+    const data = await response.json();
+    setprediction(data.prediction);
+  }
 
-  // useEffect(()=>{
-  //   if (imagesArray.length > 0) {
-  //     performPrediction();
-  //     console.log("call made to python server")
-  //   }
-  // },[imagesArray])
+  useEffect(()=>{
+    if (imagesArray.length > 0) {
+      performPrediction();
+      console.log("call made to python server")
+    }
+  },[imagesArray])
 
 
   const handleSubmit = async () => {
@@ -128,6 +130,25 @@ function Pickup() {
     console.error("Error submitting pickup:", error);
   }
   };
+  const [pincodeinfo,setpincodeinfo]=useState([])
+
+  const pincodevalidation = async()=>{
+        try{
+          await axios.get(`https://api.postalpincode.in/pincode/${pincode}`).then(response=>{ 
+            setpincodeinfo(response.data)        
+          })
+
+        }catch(error){
+          console.log("Error while fetching the pin code information")
+        }
+  }
+
+  useEffect(()=>{
+    if(pincode.length>=6){
+      pincodevalidation();
+    }
+    console.log(pincodeinfo)
+  },[pincode])
 
   return (
     <div>
@@ -183,6 +204,17 @@ function Pickup() {
           onChange={(e) => setAddressLine2(e.target.value)}/>
             <TextField label="Pincode" sx={{ width: '80%', marginBottom: '2vh' }} value={pincode}
           onChange={(e) => setPincode(e.target.value)}/>
+            {
+              (pincodeinfo.length>0) && (
+                (pincodeinfo[0].Status=="Success")?(
+                  (pincodeinfo[0].PostOffice[0].District=="Mysore") ? (
+                    <Typography sx={{fontWeight:'bold',color:'grey'}}>{pincodeinfo[0].PostOffice[0].Name} , {pincodeinfo[0].PostOffice[0].District}</Typography>
+                  ) : (<Typography sx={{color:'blue',display:'flex',alignContent:'center',justifyContent:'center',fontWeight:'bold',fontSize: { xs: "14px", sm: "16px" }}}>Sorry we are not available in your location yet &nbsp; <SentimentVeryDissatisfied/></Typography>)
+                ):(
+                  <Typography sx={{fontWeight:'bold',color:'red'}}>Invalid pincode</Typography>
+                )
+              )  
+            }
           </Box>
           {/*---------------------Map box below --------------------------------------------------- */}
           <Box
@@ -206,11 +238,12 @@ function Pickup() {
           </Box>
         </Box>
 
-        <Box sx={{ m: '3vh 0', border: '1px solid grey', borderRadius: '5px', width: { xs: "90vw", sm: "70vw" } }}>
-          <Box><Typography sx={{ mb: '1vh', height: '5vh', backgroundColor: 'rgba(144, 238, 144, 0.8);', fontWeight: 'bolder', fontSize: { xs: '14px', sm: '16px' }, p: '0vh 0' }}>Upload images</Typography>
-          {/* {
+        <Box sx={{ m: '3vh 0', border: '1px solid grey', borderRadius: '5px', width: { xs: "90vw", sm: "70vw" }}} > 
+          <Box ><Typography sx={{ mb: '1vh', height: '5vh', backgroundColor: 'rgba(144, 238, 144, 0.8);', fontWeight: 'bolder', fontSize: { xs: '14px', sm: '16px' }, p: '0vh 0' }}>Upload images</Typography>
+          {
             (prediction.length!=0) && (imagesArray.length!=0) && (
-              <Box>
+              <Box sx={{justifyContent:"flex-start",height:"100px",display:'flex',alignContent:'center',alignItems:'center',marginLeft:'20px'}} >
+                <Typography>Select category : &nbsp;</Typography>
                  <Select
         label="Select Class"
         onChange={handleClassSelect}
@@ -223,13 +256,13 @@ function Pickup() {
         ))}
       </Select>
       {prediction.map((cls) => (
-        <Button variant="outlined" key={cls} onClick={() => handleRemoveClass(cls)} style={{ margin: 8 }}>
+        <Button variant="outlined" label={"add"} key={cls} onClick={() => handleRemoveClass(cls)} style={{ margin: 8 }}>
           {cls}
         </Button>
       ))}
               </Box>
             )
-          } */}
+          }
           </Box>
           <Box sx={{ m: '0vh 0' }}>
             <Box sx={{ border: '1px solid black' }}>
