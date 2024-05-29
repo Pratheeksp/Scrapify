@@ -196,7 +196,7 @@ const MobilesForm = ({flag,editdata}) => {
         <Box sx={{width:'100%',display:'flex',margin:'1vh 0'}}>
         <TextField
           label="Pincode"
-          sx={{width:'50%'}}
+          sx={{width:'50%',display:flag=='edit'?'none':'block'}}
           margin="normal"
           name="pincode"
           value={pincode}
@@ -204,7 +204,8 @@ const MobilesForm = ({flag,editdata}) => {
         />
         <TextField
           label="City"
-          sx={{width:'50%'}}
+          fullWidth={flag=='edit'?true:false}
+          sx={{width:flag=='edit'?'100%':'50%'}}
           margin="normal"
           name="city"
           value={formData.city}
