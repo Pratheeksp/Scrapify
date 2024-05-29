@@ -15,7 +15,7 @@ import { doc, getDocs, collection , query , orderBy , limit , startAfter,endBefo
 import { ArrowBackIos, ArrowForwardIos, FirstPage, LastPage } from "@mui/icons-material";
 import { styled } from '@mui/material/styles';
 
-function Resell(){
+function Resell({useremail}){
   const [items,setitems]=useState();
   const [filterkey,setfilterkey]=useState('');
   const [searchkey,setsearchkey]=useState('');
@@ -28,6 +28,8 @@ function Resell(){
     q = query(
       collection(db, 'resellDoc'),
       orderBy('timestamp', 'desc'),
+      // where('useremail','!=',useremail),
+      // where('status','!=',"sold"),
     );
 
     if(filterkey!==''){
@@ -51,7 +53,7 @@ function Resell(){
    }
   
     const querySnapshot = await getDocs(q);
-    let data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(doc=> doc.status!="sold" && doc.useremail!=useremail);
     if(data.length==0)return;
 
     if (searchkey) {
